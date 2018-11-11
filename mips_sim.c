@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 //some definitions
 #define FALSE 0
@@ -67,8 +68,9 @@ int main(int ac, char *av[])
 void init()
 {
 	FILE* fp = fopen("runme.hex","r");
-	int i;
+	int i, idx = 0;
 	long inst;
+	char tmp[10] = {0, };
 
 	if(fp == NULL)
 	{
@@ -94,14 +96,32 @@ void init()
 	pc=0;
 
 	/*regName*/
-	regName[0] = "r0"; regName[1] = "at"; regName[2] = "v0"; regName[3] = "v1"; 
-	regName[4] = "a0"; regName[5] = "a1"; regName[6] = "a2"; regName[7] = "a3";
-	regName[8] = "t0"; regName[9] = "t1"; regName[10] = "t2"; regName[11] = "t3";
-	regName[12] = "t4"; regName[13] = "t5"; regName[14] = "t6"; regName[15] = "t7";
-	regName[16] = "s0"; regName[17] = "s1"; regName[18] = "s2"; regName[19] = "s3";
-	regName[20] = "s4"; regName[21] = "s5"; regName[22] = "s6"; regName[23] = "s7";
-	regName[24] = "t8"; regName[25] = "t9"; regName[26] = "k0"; regName[27] = "k1";
-	regName[28] = "gp"; regName[29] = "sp"; regName[30] = "s8"; regName[31] = "ra";
+	regName[idx++] = "r0"; regName[idx++] = "at"; 
+	regName[idx++] = "v0"; regName[idx++] = "v1";
+
+	for (i = 0; i < 4; i++) {
+		regName[idx] = "a";
+		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+	}
+
+	for (i = 0; i < 8; i++) {
+		regName[idx] = "t";
+		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+	}
+
+	for (i = 0; i < 8; i++) {
+		regName[idx] = "s";
+		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+	}	
+
+	for (i = 8; i < 10; i++) {
+		regName[idx] = "t";
+		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+	}
+
+	regName[idx++] = "k0"; regName[idx++] = "k1";
+	regName[idx++] = "gp"; regName[idx++] = "sp"; 
+	regName[idx++] = "s8"; regName[idx++] = "ra";
 }
 
 void print_reg()
