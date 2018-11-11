@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 //some definitions
 #define FALSE 0
@@ -22,6 +23,7 @@ int data_mem[DATA_MEM_SIZE]; //data memory
 
 //misc. function
 void init();
+void print_reg();
 
 //main
 int main(int ac, char *av[])
@@ -63,7 +65,7 @@ int main(int ac, char *av[])
 
 /* initialize all datapat elements
 //fill the instruction and data memory
-//reset the registers
+//reset the registers and enter the register name into regNameyg
 */
 void init()
 {
@@ -96,32 +98,32 @@ void init()
 	pc=0;
 
 	/*regName*/
-	regName[idx++] = "r0"; regName[idx++] = "at"; 
-	regName[idx++] = "v0"; regName[idx++] = "v1";
+	strcpy(regName[idx++], "r0"); strcpy(regName[idx++], "at"); 
+	strcpy(regName[idx++], "v0"); strcpy(regName[idx++], "v1");
 
 	for (i = 0; i < 4; i++) {
-		regName[idx] = "a";
-		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+		strcpy(regName[idx], "a");
+		strcat(regName[idx++], itoa(i, tmp, 10));
 	}
 
 	for (i = 0; i < 8; i++) {
-		regName[idx] = "t";
-		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+		strcpy(regName[idx], "t");
+		strcat(regName[idx++], itoa(i, tmp, 10));
 	}
 
 	for (i = 0; i < 8; i++) {
-		regName[idx] = "s";
-		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+		strcpy(regName[idx], "s");
+		strcat(regName[idx++], itoa(i, tmp, 10));
 	}	
 
 	for (i = 8; i < 10; i++) {
-		regName[idx] = "t";
-		regName[idx++] = strcat(regName, itoa(i, tmp, 10);
+		strcpy(regName[idx], "t");
+		strcat(regName[idx++], itoa(i, tmp, 10));
 	}
 
-	regName[idx++] = "k0"; regName[idx++] = "k1";
-	regName[idx++] = "gp"; regName[idx++] = "sp"; 
-	regName[idx++] = "s8"; regName[idx++] = "ra";
+	strcpy(regName[idx++], "k0"); strcpy(regName[idx++], "k1");
+	strcpy(regName[idx++], "gp"); strcpy(regName[idx++], "sp"); 
+	strcpy(regName[idx++] ,"s8"); strcpy(regName[idx++], "ra");
 }
 
 void print_reg()
