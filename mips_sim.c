@@ -32,16 +32,33 @@ typedef struct {
 	long addr;
 } inst_fm;
 
+// control unit
+typedef struct {
+	int RegDst, ALUSrc, MemtoReg;     // 멀티플렉서 제어
+	int RegWrite, MemRead, MemWrite;  // 레지스터 파일, 데이터 메모리에서 읽고 쓰는 것 제어
+	int Branch;                       // 분기할지 말지 판단
+	int ALUOp;                        // ALU
+} control;
+
 //misc. function
 void init();
 void fetch(int);
-void hexToBin(int);
 void decode(inst_fm*);
-int rdValue(int, int);
 void exe(inst_fm);
 void mem();
 void wb();
 void print_reg();
+
+// function
+void hexToBin(int);
+int getVal(int, int);
+void setControl(int a);
+void setControl_R();
+void setControl_beq();
+void setControl_lw();
+void setControl_sw();
+
+control ctr;
 
 //main
 int main(int ac, char *av[])
@@ -175,32 +192,32 @@ void decode(inst_fm *inst)
 {
 	int i;
 
-	inst->op = rdValue(26, 31);
+	inst->op = getVal(26, 31);
 
 	switch (inst->op) {
 		case 0:  // add, jr
-			inst->op = rdValue(0, 5);
-			inst->rs = rdValue(21, 25);
-			inst->rt = rdValue(16, 20);
-			inst->rd = rdValue(11, 15);
+			inst->op = getVal(0, 5);
+			inst->rs = getVal(21, 25);
+			inst->rt = getVal(16, 20);
+			inst->rd = getVal(11, 15);
 			break;
 		case 2:  // j
 		case 3:  // jal
-			inst->addr = rdValue(0, 25);
+			inst->addr = getVal(0, 25);
 			break;
 		case 4:  // beq
 		case 8:  // addi
 		case 10: // slti
 		case 35: // lw
 		case 43: // sw
-			inst->rs = rdValue(21, 25);
-			inst->rt = rdValue(16, 20);
-			inst->addr = rdValue(0, 15);
+			inst->rs = getVal(21, 25);
+			inst->rt = getVal(16, 20);
+			inst->addr = getVal(0, 15);
 			break;
 	}
 }
 
-int rdValue(int st, int end)
+int getVal(int st, int end)
 {
 	int i, num = 1; // num은 2*i^n, 이때 i는 i번째 비트
 	int sum = 0; 
@@ -213,6 +230,74 @@ int rdValue(int st, int end)
 	}
 
 	return sum;
+}
+
+void setControl(int a)
+{
+	switch(a)
+	{
+		case 0://add
+			setControl_R();
+		case 1://addi
+			setControl_beq();
+		case 2://jal
+		case 3://j
+		case 4://jr
+			setControl_R();
+		case 5://sw
+			setControl_lw();
+		case 6://slti
+			setControl_beq();
+		case 7://beq
+			setControl_beq();
+	}
+}
+
+void setControl_R()
+{
+	ctr.RegDst=1;
+	ctr.ALUSrc=0;
+	ctr.MemtoReg=0;
+	ctr.RegWrite=1;
+	ctr.MemRead=0;
+	ctr.MemWrite=0;
+	ctr.Branch=0;
+	ctr.ALUOp=1;
+}
+
+void setControl_lw()
+{
+	ctr.RegDst=0;
+	ctr.ALUSrc=1;
+	ctr.MemtoReg=1;
+	ctr.RegWrite=1;
+	ctr.MemRead=1;
+	ctr.MemWrite=0;
+	ctr.Branch=0;
+	ctr.ALUOp=0;
+}
+
+void setControl_sw()
+{
+	ctr.RegDst=-1;
+	ctr.ALUSrc=1;
+	ctr.MemtoReg=-1;
+	ctr.RegWrite=0;
+	ctr.MemRead=0;
+	ctr.MemWrite=1;
+	ctr.Branch=0;
+	ctr.ALUOp=0;
+}
+void setControl_beq()
+{
+	ctr.RegDst=-1;
+	ctr.ALUSrc=0;
+	ctr.MemtoReg=-1;
+	ctr.RegWrite=0;
+	ctr.MemRead=0;
+	ctr.MemWrite=0;
+	ctr.Branch=1;
+	ctr.ALUOp=1;
 }
 
 void print_reg()
