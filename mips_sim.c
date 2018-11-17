@@ -62,11 +62,15 @@ int main(int ac, char *av[])
 	inst_fm inst;
 	control ctrl;
 
-	inst.op = inst.rs = inst.rt = inst.rd = inst.addr = 0; 
-	ctrl.reg_w = ctrl.mem_r = ctrl.mem_w = 0;
 	init();
 	
 	while(!done) {
+		inst.op = inst.rs = inst.rt = inst.rd = inst.addr = 0; 
+		ctrl.reg_w = ctrl.mem_r = ctrl.mem_w = 0;
+
+		for (i = 0;i < 32;i++)
+			inst_bin[i] = 0;
+
 		fetch(pc/4);     //fetch an instruction from a instruction memory
 		decode(&inst, &ctrl);    //decode the instruction and read data from register file
 		result = exe(inst);       //perform the appropriate operation 
@@ -127,7 +131,7 @@ void init()
 	
 	/*reset the registers*/
 	for(i=0;i<32;i++) {
-		regs[i]= inst_bin[i] = 0;
+		regs[i] = 0;
 	}
 
 	/*reset pc*/
@@ -201,6 +205,7 @@ void fetch(int i)
 
 void hexToBin(int inst)
 {
+
    int i, index = 0;
    
    while(inst > 0) {
@@ -232,7 +237,8 @@ void decode(inst_fm *inst, control *ctrl)
 			break;
 		case 2:  // j
 		case 3:  // jal
-			inst->addr = getVal(0, 25);
+			inst->addr=getAddr(0,25);
+			//inst->addr = getVal(0, 25);
 			break;
 		case 4:  // beq
 		case 8:  // addi
@@ -241,7 +247,8 @@ void decode(inst_fm *inst, control *ctrl)
 		case 43: // sw
 			inst->rs = getVal(21, 25);
 			inst->rt = getVal(16, 20);
-			inst->addr = getVal(0, 15);
+			inst->addr=getAddr(0,15);
+			//inst->addr = getVal(0, 15);
 
 			// lw일 경우 RegWrite, MemRead == 1
 			if (inst->op == 35)
@@ -274,6 +281,22 @@ int getVal(int st, int end)
 	return sum;
 }
 
+int getAddr(int st, int end)
+{
+	int i;
+	
+	if(inst_bin[end]==1) {
+		for (i = st; i <= end; i++) {
+			if (inst_bin[i] == 1)
+				inst_bin[i]=0;
+			else
+				inst_bin[i]=1;
+		}
+	}
+
+	return sum;
+}
+
 
 int exe(inst_fm inst)
 {
@@ -290,14 +313,16 @@ int exe(inst_fm inst)
 			break;
 		case 2: // j
 			pc = inst.addr*4;
-			break;
+			return pc;
 		case 3: // jal
 			regs[31] = pc;
 			pc = inst.addr*4;
-			break;
+			return pc;
 		case 4: // beq
-			if (regs[inst.rs] == regs[inst.rt])
+			if (regs[inst.rs] == regs[inst.rt]) {
 				pc = pc + inst.addr*4;
+				return pc;
+			}
 			break;
 		case 8: // addi
 			result = regs[inst.rs] + inst.addr;
