@@ -50,6 +50,7 @@ void wb(int, inst_fm);
 void print_reg();
 
 // function
+char* itoa(int val, char*, int);
 void hexToBin(int);
 int getVal(int, int);
 
@@ -65,8 +66,7 @@ int main(int ac, char *av[])
 	ctrl.reg_w = ctrl.mem_r = ctrl.mem_w = 0;
 	init();
 	
-	while(!done)
-	{
+	while(!done) {
 		fetch(pc/4);     //fetch an instruction from a instruction memory
 		decode(&inst, &ctrl);    //decode the instruction and read data from register file
 		result = exe(inst);       //perform the appropriate operation 
@@ -95,7 +95,7 @@ int main(int ac, char *av[])
 	}
 
 	printf("Clock Cycles = %d\n", cycles);
-	printf("Pc           = %d\n\n", pc); 
+	printf("Pc           = %d\n\n", pc);
 	print_reg();
 
 	return 0;
@@ -162,6 +162,34 @@ void init()
 	strcpy(regName[idx++] ,"s8"); strcpy(regName[idx++], "ra");
 }
 
+char *itoa(int val, char *buf, int radix)
+{
+	char *p = buf;
+	int t;
+
+	if (val == 0)
+		*p++ = '0';
+	
+	while (val) {
+		if (radix <= 10)
+			*p++ = (val%radix)+'0';
+		else {
+			t = val % radix;
+
+			if (t <= 9)
+				*p++ = t + '0';
+			else
+				*p++ = t - 10 + 'a';
+		}
+
+		val /= radix;
+	}
+
+	*p = '\0';
+
+	return buf;
+}
+
 void fetch(int i)
 {
    int inst;
@@ -175,9 +203,6 @@ void hexToBin(int inst)
 {
    int i, index = 0;
    
-   
-   printf("inst: %d\n",inst);
-
    while(inst > 0) {
       if(inst % 2 == 1)
          inst_bin[index++] = 1;
@@ -250,7 +275,7 @@ int getVal(int st, int end)
 }
 
 
-int execute(inst_fm inst)
+int exe(inst_fm inst)
 {
 	int result = 0;
 
