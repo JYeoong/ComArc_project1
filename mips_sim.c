@@ -29,55 +29,56 @@ typedef struct {
 	int rs;
 	int rt;
 	int rd;
+	int funct;
 	long addr;
 } inst_fm;
 
 // control unit
 typedef struct {
-	int RegDst, ALUSrc, MemtoReg;     // ¸ÖÆ¼ÇÃ·º¼­ Á¦¾î
-	int RegWrite, MemRead, MemWrite;  // ·¹Áö½ºÅÍ ÆÄÀÏ, µ¥ÀÌÅÍ ¸Ş¸ğ¸®¿¡¼­ ÀĞ°í ¾²´Â °Í Á¦¾î
-	int Branch;                       // ºĞ±âÇÒÁö ¸»Áö ÆÇ´Ü
-	int ALUOp;                        // ALU
+	int reg_w;
+	int mem_r;
+	int mem_w;
 } control;
 
 //misc. function
 void init();
 void fetch(int);
-void decode(inst_fm*);
-void exe(inst_fm);
-void mem();
-void wb();
+void decode(inst_fm*, control*);
+int exe(inst_fm);
+int mem(int, control, int);
+void wb(int, inst_fm);
 void print_reg();
 
 // function
 void hexToBin(int);
 int getVal(int, int);
-void setControl(int a);
-void setControl_R();
-void setControl_beq();
-void setControl_lw();
-void setControl_sw();
-
-control ctr;
 
 //main
 int main(int ac, char *av[])
 {
 	char done=FALSE;
-	int i = 0;
+	int i = 0, result;
 	inst_fm inst;
+	control ctrl;
 
 	inst.op = inst.rs = inst.rt = inst.rd = inst.addr = 0; 
+	ctrl.reg_w = ctrl.mem_r = ctrl.mem_w = 0;
 	init();
 	
 	while(!done)
 	{
-		fetch(i++);     //fetch an instruction from a instruction memory
-		decode(&inst);    //decode the instruction and read data from register file
-		exe(inst);       //perform the appropriate operation 
-		mem();       //access the data memory
-		wb();        //write result of arithmetic operation or data read from the data memory if required
+		fetch(pc/4);     //fetch an instruction from a instruction memory
+		decode(&inst, &ctrl);    //decode the instruction and read data from register file
+		result = exe(inst);       //perform the appropriate operation 
 		
+		// lw, sw
+		if (ctrl.mem_r || ctrl.mem_w)
+			result = mem(result, ctrl, inst.rt);       //access the data memory
+		
+		// add, addi, lw, slti
+		if (ctrl.reg_w)
+			wb(result, inst);        //write result of arithmetic operation or data read from the data memory if required
+
 		cycles++;    //increase clock cycle
 		
 		// check the exit condition 
@@ -188,7 +189,7 @@ void hexToBin(int inst)
    }
 }
 
-void decode(inst_fm *inst)
+void decode(inst_fm *inst, control *ctrl)
 {
 	int i;
 
@@ -196,10 +197,13 @@ void decode(inst_fm *inst)
 
 	switch (inst->op) {
 		case 0:  // add, jr
-			inst->op = getVal(0, 5);
+			inst->funct = getVal(0, 5);
 			inst->rs = getVal(21, 25);
 			inst->rt = getVal(16, 20);
 			inst->rd = getVal(11, 15);
+
+			if (inst->funct == 32)
+				ctrl->reg_w = 1;
 			break;
 		case 2:  // j
 		case 3:  // jal
@@ -213,13 +217,26 @@ void decode(inst_fm *inst)
 			inst->rs = getVal(21, 25);
 			inst->rt = getVal(16, 20);
 			inst->addr = getVal(0, 15);
+
+			// lwì¼ ê²½ìš° RegWrite, MemRead == 1
+			if (inst->op == 35)
+				ctrl->reg_w = ctrl->mem_r = 1;
+
+			// swì¼ ê²½ìš° MemWrite == 1
+			if (inst->op == 43)
+				ctrl->mem_w = 1;
+
+			// addi, sltiì¼ ê²½ RegWrite == 1
+			if (inst->op == 8 || inst->op == 10)
+				ctrl->reg_w = 1;
+
 			break;
 	}
 }
 
 int getVal(int st, int end)
 {
-	int i, num = 1; // numÀº 2*i^n, ÀÌ¶§ i´Â i¹øÂ° ºñÆ®
+	int i, num = 1; // numì€ 2*i^n, ì´ë•Œ iëŠ” ië²ˆì§¸ ë¹„íŠ¸ê°’
 	int sum = 0; 
 
 	for (i = st; i <= end; i++) {
@@ -232,72 +249,66 @@ int getVal(int st, int end)
 	return sum;
 }
 
-void setControl(int a)
+
+int execute(inst_fm inst)
 {
-	switch(a)
-	{
-		case 0://add
-			setControl_R();
-		case 1://addi
-			setControl_beq();
-		case 2://jal
-		case 3://j
-		case 4://jr
-			setControl_R();
-		case 5://sw
-			setControl_lw();
-		case 6://slti
-			setControl_beq();
-		case 7://beq
-			setControl_beq();
+	int result = 0;
+
+	switch (inst.op) {
+		case 0:
+			if (inst.funct == 8)  // jr
+				pc = regs[inst.rs];
+			else {  // add
+				result = regs[inst.rs] + regs[inst.rt];
+				return result;
+			}
+			break;
+		case 2: // j
+			pc = inst.addr*4;
+			break;
+		case 3: // jal
+			regs[31] = pc;
+			pc = inst.addr*4;
+			break;
+		case 4: // beq
+			if (regs[inst.rs] == regs[inst.rt])
+				pc = pc + inst.addr*4;
+			break;
+		case 8: // addi
+			result = regs[inst.rs] + inst.addr;
+			return result;
+		case 10: // slti
+			result = regs[inst.rs] < inst.addr ? 1 : 0;
+			return result;
+		case 35: // lw
+			result = regs[inst.rs] + inst.addr;
+			return result;
+		case 43: // sw
+			result = regs[inst.rs] + inst.addr;
+			return result;
 	}
+
+	return 0;
 }
 
-void setControl_R()
+// lw, sw
+int mem(int res, control ctrl, int regnum)
 {
-	ctr.RegDst=1;
-	ctr.ALUSrc=0;
-	ctr.MemtoReg=0;
-	ctr.RegWrite=1;
-	ctr.MemRead=0;
-	ctr.MemWrite=0;
-	ctr.Branch=0;
-	ctr.ALUOp=1;
+	if (ctrl.mem_r) // lw
+		return data_mem[res];
+	else // sw
+		data_mem[res] = regs[regnum];
+
+	return 0;
 }
 
-void setControl_lw()
+// add, addi, slit, lw
+void wb(int res, inst_fm inst)
 {
-	ctr.RegDst=0;
-	ctr.ALUSrc=1;
-	ctr.MemtoReg=1;
-	ctr.RegWrite=1;
-	ctr.MemRead=1;
-	ctr.MemWrite=0;
-	ctr.Branch=0;
-	ctr.ALUOp=0;
-}
-
-void setControl_sw()
-{
-	ctr.RegDst=-1;
-	ctr.ALUSrc=1;
-	ctr.MemtoReg=-1;
-	ctr.RegWrite=0;
-	ctr.MemRead=0;
-	ctr.MemWrite=1;
-	ctr.Branch=0;
-	ctr.ALUOp=0;
-}
-void setControl_beq()
-{
-	ctr.RegDst=-1;
-	ctr.ALUSrc=0;
-	ctr.MemtoReg=-1;
-	ctr.RegWrite=0;
-	ctr.MemRead=0;
-	ctr.MemWrite=0;
-	ctr.Branch=1;
-	ctr.ALUOp=1;
+	if (inst.op == 32)
+		regs[inst.rd] = res;
+	else
+		regs[inst.rt] = res;
 }
 
 void print_reg()
