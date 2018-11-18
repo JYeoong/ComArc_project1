@@ -90,7 +90,7 @@ int main(int ac, char *av[])
 		//if debug mode, print clock cycle, pc, reg
 		if (strcmp(av[1], "0") == 0) {
 			printf("Clock Cycles = %d\n", cycles);
-			printf("Pc           = %d\n\n", pc);
+			printf("Pc     = %d\n\n", pc);
 			print_reg();
 			printf("\n\n");
 		}
