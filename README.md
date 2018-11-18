@@ -23,7 +23,7 @@
    
    # Contribution
    #### 재영
-   fetch에서 16진수->2진수 코드짜기, control unit과 alu unit 조사 후 코딩의 방향성, 선택적 control unit 설정,에 기여.  
+   fetch에서 16진수->2진수 코드짜기, control unit과 alu unit 조사 후 코딩의 방향성,control unit의 ,에 기여.  
    
    #### 지현
    손수 주어진 instructions들을 simulate하여 디버깅과 오류 수정(2의 보수법, inst_bin 초기화 문제 등)에 큰 기여.  
