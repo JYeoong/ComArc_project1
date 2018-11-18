@@ -27,3 +27,4 @@
    
    #### 지현
    손수 주어진 instructions들을 simulate하여 디버깅과 오류 수정(16->2진수, inst_bin 초기화 문제 등)에 큰 기여.
+   decode, regs초기화 등 코드 작성과 정리에 기여.
