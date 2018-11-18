@@ -96,9 +96,11 @@ int main(int ac, char *av[])
 		}
 	}
 
-	printf("Clock Cycles = %d\n", cycles);
-	printf("Pc           = %d\n\n", pc);
-	print_reg();
+	if (strcmp(av[1], "1") == 0) {
+		printf("Clock Cycles = %d\n", cycles);
+		printf("Pc           = %d\n\n", pc);
+		print_reg();
+	}
 
 	return 0;
 }
