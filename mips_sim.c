@@ -53,6 +53,7 @@ void print_reg();
 char* itoa(int val, char*, int);
 void hexToBin(unsigned int);
 int getVal(int, int);
+int getAddr(int, int);
 
 //main
 int main(int ac, char *av[])
@@ -98,7 +99,7 @@ int main(int ac, char *av[])
 
 	if (strcmp(av[1], "1") == 0) {
 		printf("Clock Cycles = %d\n", cycles);
-		printf("Pc           = %d\n\n", pc);
+		printf("Pc     = %d\n\n", pc);
 		print_reg();
 	}
 
@@ -236,13 +237,13 @@ void decode(inst_fm *inst, control *ctrl)
 			inst->rt = getVal(16, 20);
 			inst->rd = getVal(11, 15);
 
+			// add일 경우 RegWrite == 1
 			if (inst->funct == 32)
 				ctrl->reg_w = 1;
 			break;
 		case 2:  // j
 		case 3:  // jal
 			inst->addr=getAddr(0,25);
-			//inst->addr = getVal(0, 25);
 			break;
 		case 4:  // beq
 		case 8:  // addi
@@ -252,7 +253,6 @@ void decode(inst_fm *inst, control *ctrl)
 			inst->rs = getVal(21, 25);
 			inst->rt = getVal(16, 20);
 			inst->addr=getAddr(0,15);
-			//inst->addr = getVal(0, 15);
 
 			// lw일 경우 RegWrite, MemRead == 1
 			if (inst->op == 35)
