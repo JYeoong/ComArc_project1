@@ -14,7 +14,7 @@
    Alu연산이나 주소값을 계산합니다. lw, sw, add, addi, lw, slti의 경우 여기서 반환되는 값이 이후, mem과 wb의 파라미터로 쓰입니다.
    
    #### mem
-   data_memmory를 쓰거나 읽을 때(memoryRead나 memoryWrite 값이 인가되었을 때), 실행됩니다. 즉, instruction의 op가 lw나 sw일 때 실행됩니다.
+   data_memmory를 쓰거나 읽을 때(memoryRead나 memoryWrite 값이 인가되었을 때), 실행됩니다. 즉, instruction의 op가 lw나 sw일 때 실행됩니다.  
    exe에서 얻은 접근해야 할 data_memory의 주소에 값을 쓰거나 주소에 있는 값을 반환합니다.
    
    #### wb
@@ -23,8 +23,9 @@
    
    # Contribution
    #### 재영
-   fetch에서 16진수->2진수 코드짜기, control unit 도입해서 함수 접근에 차이 두기.
+   fetch에서 16진수->2진수 코드짜기, control unit과 alu unit 조사 후 코딩의 방향성, 선택적 control unit 설정,에 기여.  
+   도입해서 함수 접근에 차이 두기.  
    
    #### 지현
-   손수 주어진 instructions들을 simulate하여 디버깅과 오류 수정(16->2진수, inst_bin 초기화 문제 등)에 큰 기여.
-   decode, regs초기화 등 코드 작성과 정리에 기여.
+   손수 주어진 instructions들을 simulate하여 디버깅과 오류 수정(16->2진수, inst_bin 초기화 문제 등)에 큰 기여.  
+   decode, regs초기화 등 코드 작성과 정리에 기여.  
