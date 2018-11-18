@@ -51,7 +51,7 @@ void print_reg();
 
 // function
 char* itoa(int val, char*, int);
-void hexToBin(int);
+void hexToBin(unsigned int);
 int getVal(int, int);
 
 //main
@@ -68,15 +68,12 @@ int main(int ac, char *av[])
 		inst.op = inst.rs = inst.rt = inst.rd = inst.addr = 0; 
 		ctrl.reg_w = ctrl.mem_r = ctrl.mem_w = 0;
 
-		for (i = 0;i < 32;i++)
-			inst_bin[i] = 0;
-
 		fetch(pc/4);     //fetch an instruction from a instruction memory
 		decode(&inst, &ctrl);    //decode the instruction and read data from register file
 		result = exe(inst);       //perform the appropriate operation 
 		
 		// lw, sw
-		if (ctrl.mem_r || ctrl.mem_w)
+ 		if (ctrl.mem_r || ctrl.mem_w)
 			result = mem(result, ctrl, inst.rt);       //access the data memory
 		
 		// add, addi, lw, slti
@@ -91,10 +88,11 @@ int main(int ac, char *av[])
 			
 
 		//if debug mode, print clock cycle, pc, reg
-		if (av[1] == 0) {
+		if (strcmp(av[1], "0") == 0) {
 			printf("Clock Cycles = %d\n", cycles);
 			printf("Pc           = %d\n\n", pc);
 			print_reg();
+			printf("\n\n");
 		}
 	}
 
@@ -131,7 +129,7 @@ void init()
 	
 	/*reset the registers*/
 	for(i=0;i<32;i++) {
-		regs[i] = 0;
+		regs[i] = inst_bin[i] = 0;
 	}
 
 	/*reset pc*/
@@ -196,14 +194,14 @@ char *itoa(int val, char *buf, int radix)
 
 void fetch(int i)
 {
-   int inst;
+   unsigned int inst;
    
-   inst=(int)inst_mem[i];
+   inst = inst_mem[i];
    hexToBin(inst);
    pc += 4;
 }
 
-void hexToBin(int inst)
+void hexToBin(unsigned int inst)
 {
 
    int i, index = 0;
@@ -212,10 +210,14 @@ void hexToBin(int inst)
       if(inst % 2 == 1)
          inst_bin[index++] = 1;
       else
-         index++;
+		inst_bin[index++] = 0;
    
       inst /= 2;
-      
+   }
+
+   if (index < 31) {
+	   for (i = index; i < 32; i++)
+		   inst_bin[i] = 0;
    }
 }
 
@@ -272,7 +274,7 @@ int getVal(int st, int end)
 	int sum = 0; 
 
 	for (i = st; i <= end; i++) {
-		if (inst_bin[i] == 1)
+		if (inst_bin[i])
 			sum += num;
 		
 		num *= 2;
@@ -283,16 +285,21 @@ int getVal(int st, int end)
 
 int getAddr(int st, int end)
 {
-	int i;
+	int i, num = 1;
+	int sum = 0;
 	
-	if(inst_bin[end]==1) {
+	if (inst_bin[end]) {
 		for (i = st; i <= end; i++) {
-			if (inst_bin[i] == 1)
-				inst_bin[i]=0;
-			else
-				inst_bin[i]=1;
+			if (!inst_bin[i])
+				sum += num;
+
+			num *= 2;
 		}
+
+		sum = (-1)*(sum+1);
 	}
+	else
+		sum = getVal(st, end);
 
 	return sum;
 }
