@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 //some definitions
 #define FALSE 0
 #define TRUE 1
 #define ADDR long long
 #define BOOL char
+#define log2(x) (int)(log(x)/log(2.0))
 
 typedef struct _MEMACCESS{
     ADDR addr;
@@ -27,22 +29,23 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 void init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
-BOOL isHit(ADDR addr);
+BOOL isHit(ADDR);
 
 //insert a cache block for a memory access
-ADDR insert_to_cache(ADDR addr);
+ADDR insert_to_cache(ADDR, int, int, int, RPL);
 
 
 //print the simulation statistics
 //print_stat();
 
-
+void update_LRU(int, int, int, int);
 
 
 //main
 int main(int argc, char*argv[])  
 {
-    int i=0, index;
+    int i=0;
+	int offset, index, tag;
     int cache_size=32768;
     int assoc=8;
     int block_size=32;
@@ -81,7 +84,9 @@ int main(int argc, char*argv[])
             }
         }
     }
-	index = cache_size / (block_size * assoc);
+	index = log2((double)(cache_size / (block_size * assoc)));
+	offset = log2((double)(block_size/8));
+	tag = 32 - (index + offset);
     
     /*
      * main body of cache simulator
@@ -97,13 +102,10 @@ int main(int argc, char*argv[])
         if(success!=TRUE)   //check the end of the trace file
             break;
 
-    /*
         if(isHit(new_access.addr)==FALSE)   //check if the new memory access hit on the cache
         {
-            insert_to_cache(new_access.addr);  //if miss, insert a cache block for the memory access to the cache
+            insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  //if miss, insert a cache block for the memory access to the cache
         }
-    */
-
 	}
     
     // print statistics here
@@ -126,7 +128,7 @@ void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	int index;
 	int i, j;
 
-	// cache index part
+	// cache index
 	index = cache_size / (block_size * assoc);
 
 	cache = (MEMACCESS**)malloc(sizeof(MEMACCESS*)*index);
@@ -197,12 +199,80 @@ BOOL read_new_memaccess(MEMACCESS* mem_access)
         return FALSE;
 }
 
-BOOL isHit(ADDR addr) {
+BOOL isHit(ADDR addr, int offset, int index, int tag,int assoc){
+	int i;
+	int idx,tg; // index, tag
 
+	idx= (addr << tag) >> (32-index);
+	tg = addr >> (index + offset);
 
+	for (i = 0; i < assoc; i++) {
+		if ((cache[idx][i].addr >> (index + offset)) == tg) {
+			if (cache[idx][i].is_read==0)
+    			return FALSE;
+			else
+				return TRUE;
+		}
+	}
+	
+	return FALSE;
 }
 
-ADDR insert_to_cache(ADDR addr) {
+ADDR insert_to_cache(ADDR addr, int index, int tag, int assoc, RPL repl_policy) {
+	int r, c; // cache row, column
+	int check = FALSE;
 
+	r = (addr << tag) >> (32-index);
 
+	if (repl_policy == LRU) {
+		for (c = assoc-1; c >= 0; c--) {
+			if (!cache[r][c].is_read) {
+				check = TRUE;
+				break;
+			}
+		}
+
+		if (!check) {
+			for (c = assoc-1; c >= 0; c--)
+				if (LRU_counter[r][c] == 0)
+					break;
+
+			cache[r][c].addr = addr;
+			update_LRU(r, c, 0, assoc);
+			LRU_counter[r][c] = assoc-1;
+		}
+
+		cache[r][c].is_read = TRUE;
+		cache[r][c].addr = addr;
+		update_LRU(r, c, LRU_counter[r][c], assoc);
+		LRU_counter[r][c] = assoc-1;
+	}
+	else {
+		for (c = 0; c < assoc; c++) {
+			if (!cache[r][c].is_read) {
+				check = TRUE;
+				break;
+			}
+		}
+
+		if (!check) {
+			srand(time(NULL));
+			c = rand() % assoc;
+		}
+
+		cache[r][c].addr = addr;
+		cache[r][c].is_read = TRUE;
+	}
+}
+
+void update_LRU(int r, int c, int prev, int assoc) {
+	int i;
+
+	for (i = 0; i < assoc; i++) {
+		if (i == c)
+			continue;
+		
+		if (LRU_counter[r][i] > prev)
+			LRU_counter[r][i] -= 1;
+	}
 }
