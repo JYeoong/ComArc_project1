@@ -195,5 +195,14 @@ BOOL read_new_memaccess(MEMACCESS* mem_access)
     }       
     else
         return FALSE;
+}
+
+BOOL isHit(ADDR addr) {
+
+
+}
+
+ADDR insert_to_cache(ADDR addr) {
+
 
 }
