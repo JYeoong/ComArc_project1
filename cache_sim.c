@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 //some definitions
 #define FALSE 0
@@ -29,30 +30,36 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 void init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
-BOOL isHit(ADDR);
+BOOL isHit(ADDR,int,int, int,int);
 
 //insert a cache block for a memory access
 ADDR insert_to_cache(ADDR, int, int, int, RPL);
 
-
 //print the simulation statistics
-//print_stat();
+void print_stat(int, int, int, RPL);
 
 void update_LRU(int, int, int, int);
 
+//for results
+long long cache_accesses;
+long long cache_hits;
+long long cache_misses;
+double cache_miss_rate;
 
 //main
 int main(int argc, char*argv[])  
 {
     int i=0;
-	int offset, index, tag;
+    int offset, index, tag;
     int cache_size=32768;
     int assoc=8;
     int block_size=32;
     RPL repl_policy=LRU;
 
+    cache_accesses=0;
+    cache_misses=0;
 
-	/*
+    /*
     *  Read through command-line arguments for options.
     */
     for (i = 1; i < argc; i++) {
@@ -92,7 +99,8 @@ int main(int argc, char*argv[])
      * main body of cache simulator
     */
     init_cache(cache_size, block_size, assoc, repl_policy);   //configure the cache with the cache parameters specified in the input arguments
-    
+    cache_accesses++;
+
     while(1)
 	{
         MEMACCESS new_access;
@@ -102,14 +110,17 @@ int main(int argc, char*argv[])
         if(success!=TRUE)   //check the end of the trace file
             break;
 
-        if(isHit(new_access.addr)==FALSE)   //check if the new memory access hit on the cache
+	cache_accesses++;
+        if(isHit(new_access.addr,offset,index,tag,assoc)==FALSE)   //check if the new memory access hit on the cache
         {
+	    cache_accesses++;
             insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  //if miss, insert a cache block for the memory access to the cache
+	    cache_misses++;
         }
 	}
     
     // print statistics here
-	// print_stat();
+	print_stat(cache_size, block_size, assoc, repl_policy);
 
 	for (i = 0; i < index; i++)
 		free(cache[i]);
@@ -275,4 +286,19 @@ void update_LRU(int r, int c, int prev, int assoc) {
 		if (LRU_counter[r][i] > prev)
 			LRU_counter[r][i] -= 1;
 	}
+}
+
+void print_stat(int cache_size, int block_size, int assoc, RPL repl_policy)
+{
+	printf("cache_size : %d\n",cache_size);
+	printf("block_size : %d\n",block_size);
+	printf("associativity : %d\n",assoc);
+	if(repl_policy==0)
+	    printf("replacement : LRU\n");
+	else
+	    printf("replacement : RANDOM\n");
+	printf("cache accesses : %lld\n",cache_accesses);
+	printf("cache_hits : %lld\n",cache_accesses-cache_misses);
+	printf("cache_misses : %lld\n",cache_misses);
+	printf("cache_miss_rate : %lld\n",cache_misses/cache_accesses);
 }
