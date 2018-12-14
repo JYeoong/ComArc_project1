@@ -142,7 +142,7 @@ void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	}
 
 
-	// LRU¿œ ∂ß LRU counters
+	// LRUÏùº Îïå LRU counters
 	if (repl_policy == LRU) {
 		LRU_counter = (int**)malloc(sizeof(int*)*index);
 		for (i = 0; i < index; i++)
@@ -150,7 +150,7 @@ void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 
 		for (i = 0; i < index; i++)
 			for (j = 0; j < assoc; j++)
-				LRU_counter[i][j] = 0;
+				LRU_counter[i][j] = assoc-(i+1);
 	}
 }
 
