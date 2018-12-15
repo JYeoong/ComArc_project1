@@ -109,7 +109,7 @@ int main(int argc, char*argv[])
             break;
 
 		//check if the new memory access hit on the cache
-        if(isHit(new_access.addr) == FALSE)   
+        if(isHit(new_access.addr,index,tag,assoc,repl_policy) == FALSE)   
         {
 			//if miss, insert a cache block for the memory access to the cache
             insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  
