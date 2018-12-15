@@ -25,7 +25,7 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 
 
 //configure the cache
-void init_cache(int, int, int, RPL);
+int init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
 BOOL isHit(ADDR);
@@ -44,7 +44,7 @@ int logB(int);
 //main
 int main(int argc, char*argv[])  
 {
-    int i=0;
+    int i=0, size;
 	int offset, index, tag;
 	int cache_hit, cache_miss;
     int cache_size=32768;
@@ -94,21 +94,26 @@ int main(int argc, char*argv[])
     /*
      * main body of cache simulator
     */
-    init_cache(cache_size, block_size, assoc, repl_policy);   //configure the cache with the cache parameters specified in the input arguments
-    
+
+	//configure the cache with the cache parameters specified in the input arguments
+    size = init_cache(cache_size, block_size, assoc, repl_policy); 
+
     while(1)
 	{
         MEMACCESS new_access;
         
-        BOOL success=read_new_memaccess(&new_access);  //read new memory access from the memory trace file
+		//read new memory access from the memory trace file
+        BOOL success=read_new_memaccess(&new_access);
         
         if(success!=TRUE)   //check the end of the trace file
             break;
 
-        if(isHit(new_access.addr) == FALSE)   //check if the new memory access hit on the cache
+		//check if the new memory access hit on the cache
+        if(isHit(new_access.addr) == FALSE)   
         {
+			//if miss, insert a cache block for the memory access to the cache
+            insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  
 			cache_miss++;
-            insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  //if miss, insert a cache block for the memory access to the cache
         }
 		else
 			cache_hit++;
@@ -117,12 +122,12 @@ int main(int argc, char*argv[])
     // print statistics here
 	print_stat(cache_size, block_size, assoc, repl_policy, cache_hit, cache_miss);
 
-	for (i = 0; i < index; i++)
+	for (i = 0; i < size; i++)
 		free(cache[i]);
 	free(cache);
 
 	if (LRU_counter != NULL) {
-		for (i = 0; i < index; i++)
+		for (i = 0; i < size; i++)
 			free(LRU_counter[i]);
 		free(LRU_counter);
 	}
@@ -142,7 +147,7 @@ int logB(int x) {
 	return cnt;
 }
 
-void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
+int init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	int index;
 	int i, j;
 
@@ -172,6 +177,8 @@ void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 			for (j = 0; j < assoc; j++)
 				LRU_counter[i][j] = assoc-(i+1);
 	}
+
+	return index;
 }
 
 
