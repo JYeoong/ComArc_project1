@@ -28,7 +28,7 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 int init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
-BOOL isHit(ADDR);
+BOOL isHit(ADDR, int, int, int, int);
 
 //insert a cache block for a memory access
 ADDR insert_to_cache(ADDR, int, int, int, RPL);
@@ -167,7 +167,7 @@ int init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	}
 
 
-	// LRU일 때 LRU counters
+	// LRU counters if repl_policy == LRU
 	if (repl_policy == LRU) {
 		LRU_counter = (int**)malloc(sizeof(int*)*index);
 		for (i = 0; i < index; i++)
