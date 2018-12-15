@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 
 //some definitions
 #define FALSE 0
 #define TRUE 1
 #define ADDR long long
 #define BOOL char
-#define log2(x) (int)(log(x)/log(2.0))
 
 typedef struct _MEMACCESS{
     ADDR addr;
@@ -30,36 +28,32 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 void init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
-BOOL isHit(ADDR,int,int, int,int);
+BOOL isHit(ADDR);
 
 //insert a cache block for a memory access
 ADDR insert_to_cache(ADDR, int, int, int, RPL);
 
+
 //print the simulation statistics
-void print_stat(int, int, int, RPL);
+void print_stat(int, int, int, RPL, int, int);
 
 void update_LRU(int, int, int, int);
+int logB(int);
 
-//for results
-long long cache_accesses;
-long long cache_hits;
-long long cache_misses;
-double cache_miss_rate;
 
 //main
 int main(int argc, char*argv[])  
 {
     int i=0;
-    int offset, index, tag;
+	int offset, index, tag;
+	int cache_hit, cache_miss;
     int cache_size=32768;
     int assoc=8;
     int block_size=32;
     RPL repl_policy=LRU;
 
-    cache_accesses=0;
-    cache_misses=0;
 
-    /*
+	/*
     *  Read through command-line arguments for options.
     */
     for (i = 1; i < argc; i++) {
@@ -91,16 +85,17 @@ int main(int argc, char*argv[])
             }
         }
     }
-	index = log2((double)(cache_size / (block_size * assoc)));
-	offset = log2((double)(block_size/8));
+	index = logB(cache_size / (block_size * assoc));
+	offset = logB(block_size);
 	tag = 32 - (index + offset);
     
+	cache_hit = cache_miss = 0;
+
     /*
      * main body of cache simulator
     */
     init_cache(cache_size, block_size, assoc, repl_policy);   //configure the cache with the cache parameters specified in the input arguments
-    cache_accesses++;
-
+    
     while(1)
 	{
         MEMACCESS new_access;
@@ -110,17 +105,17 @@ int main(int argc, char*argv[])
         if(success!=TRUE)   //check the end of the trace file
             break;
 
-	cache_accesses++;
-        if(isHit(new_access.addr,offset,index,tag,assoc)==FALSE)   //check if the new memory access hit on the cache
+        if(isHit(new_access.addr) == FALSE)   //check if the new memory access hit on the cache
         {
-	    cache_accesses++;
+			cache_miss++;
             insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  //if miss, insert a cache block for the memory access to the cache
-	    cache_misses++;
         }
+		else
+			cache_hit++;
 	}
     
     // print statistics here
-	print_stat(cache_size, block_size, assoc, repl_policy);
+	print_stat(cache_size, block_size, assoc, repl_policy, cache_hit, cache_miss);
 
 	for (i = 0; i < index; i++)
 		free(cache[i]);
@@ -133,6 +128,18 @@ int main(int argc, char*argv[])
 	}
 
 	return 0;
+}
+
+int logB(int x) {
+	int i;
+	int cnt = 0;
+
+	while (x > 0) {
+		x /= 2;
+		cnt++;
+	}
+
+	return cnt;
 }
 
 void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
@@ -288,17 +295,19 @@ void update_LRU(int r, int c, int prev, int assoc) {
 	}
 }
 
-void print_stat(int cache_size, int block_size, int assoc, RPL repl_policy)
+void print_stat(int cache, int block, int assoc, RPL repl_policy, int hit, int miss)
 {
-	printf("cache_size : %d\n",cache_size);
-	printf("block_size : %d\n",block_size);
-	printf("associativity : %d\n",assoc);
-	if(repl_policy==0)
-	    printf("replacement : LRU\n");
+	printf("cache_size : %d B\n", cache/8);
+	printf("block_size : %d B\n", block);
+	printf("associativity : %d\n", assoc);
+	
+	if (repl_policy == LRU)
+		printf("replacement policy : LRU\n");
 	else
-	    printf("replacement : RANDOM\n");
-	printf("cache accesses : %lld\n",cache_accesses);
-	printf("cache_hits : %lld\n",cache_accesses-cache_misses);
-	printf("cache_misses : %lld\n",cache_misses);
-	printf("cache_miss_rate : %lld\n",cache_misses/cache_accesses);
+		printf("replacement policy : Random\n");
+
+	printf("cache accesses : %d\n", hit+miss);
+	printf("cache_hits : %d\n", hit);
+	printf("cache_misses : %d\n", miss);
+	printf("cache_miss_rate : %lf\n", (double)miss/(double)(miss+hit));
 }
