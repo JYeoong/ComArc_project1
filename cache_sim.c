@@ -304,7 +304,7 @@ void update_LRU(int r, int c, int prev, int assoc) {
 
 void print_stat(int cache, int block, int assoc, RPL repl_policy, int hit, int miss)
 {
-	printf("cache_size : %d B\n", cache/8);
+	printf("cache_size : %d B\n", cache);
 	printf("block_size : %d B\n", block);
 	printf("associativity : %d\n", assoc);
 	
