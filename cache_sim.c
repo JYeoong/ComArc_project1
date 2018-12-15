@@ -149,7 +149,7 @@ int logB(int x) {
 
 int init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	int index;
-	int i, j;
+	long long i, j;
 
 	// cache index
 	index = cache_size / (block_size * assoc);
