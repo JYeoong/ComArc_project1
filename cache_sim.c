@@ -139,7 +139,7 @@ int logB(int x) {
 	int i;
 	int cnt = 0;
 
-	while (x > 0) {
+	while (x > 1) {
 		x /= 2;
 		cnt++;
 	}
