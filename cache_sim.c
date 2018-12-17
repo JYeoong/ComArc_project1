@@ -10,8 +10,8 @@
 #define BOOL char
 
 typedef struct _MEMACCESS{
-    ADDR addr;
-    BOOL is_read;
+	ADDR addr;
+	BOOL is_read;
 } MEMACCESS;
 
 typedef enum _RPL{LRU=0, RAND=1} RPL;
@@ -28,10 +28,10 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 int init_cache(int, int, int, RPL);
 
 //check if the memory access hits on the cache
-BOOL isHit(ADDR, int, int, int, int);
+BOOL isHit(ADDR, int, int);
 
 //insert a cache block for a memory access
-ADDR insert_to_cache(ADDR, int, int, int, RPL);
+ADDR insert_to_cache(ADDR, int, int, RPL);
 
 
 //print the simulation statistics
@@ -39,87 +39,85 @@ void print_stat(int, int, int, RPL, int, int);
 
 void update_LRU(int, int, int, int);
 int logB(int);
+int getIndex(ADDR, int, int);
 
 
 //main
 int main(int argc, char*argv[])  
 {
-    int i=0, size;
-	int offset, index, tag;
+	int i=0, size, idx;
+	int offset, index;
 	int cache_hit, cache_miss;
-    int cache_size=32768;
-    int assoc=8;
-    int block_size=32;
-    RPL repl_policy=LRU;
+	int cache_size=32768;
+	int assoc=8;
+	int block_size=32;
+	RPL repl_policy=LRU;
 
 
 	/*
-    *  Read through command-line arguments for options.
-    */
-    for (i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            if (argv[i][1] == 's') 
-                cache_size=atoi(argv[i+1]);
+	 *  Read through command-line arguments for options.
+	 */
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			if (argv[i][1] == 's') 
+				cache_size=atoi(argv[i+1]);
             
-            if (argv[i][1] == 'b')
-                block_size=atoi(argv[i+1]);
+			if (argv[i][1] == 'b')
+				block_size=atoi(argv[i+1]);
+          
+			if (argv[i][1] == 'a')
+				assoc=atoi(argv[i+1]);
             
-            if (argv[i][1] == 'a')
-                assoc=atoi(argv[i+1]);
-            
-            if (argv[i][1] == 'f')
-                strcpy(trace_file,argv[i+1]);
+			if (argv[i][1] == 'f')
+				strcpy(trace_file,argv[i+1]);
 
 
-            if (argv[i][1] == 'r')
-            {
-                if(strcmp(argv[i+1],"lru")==0)
-                    repl_policy=LRU;
-                else if(strcmp(argv[i+1],"rand")==0)
-                    repl_policy=RAND;
-                else
-                {
-                    printf("unsupported replacement policy:%s\n",argv[i+1]);
-                    return -1;
-                }           
-            }
-        }
-    }
-	index = logB(cache_size / (block_size * assoc));
+			if (argv[i][1] == 'r') {
+				if(strcmp(argv[i+1],"lru")==0)
+					repl_policy=LRU;
+				else if(strcmp(argv[i+1],"rand")==0)
+					repl_policy=RAND;
+				else {
+					printf("unsupported replacement policy:%s\n",argv[i+1]);
+					return -1;
+				}
+			}
+		}
+	}
 	offset = logB(block_size);
-	tag = 32 - (index + offset);
-    
+	index = logB(cache_size / (block_size * assoc));
+
 	cache_hit = cache_miss = 0;
 
-    /*
-     * main body of cache simulator
-    */
-
+	/*
+	 * main body of cache simulator
+	 */
+    
 	//configure the cache with the cache parameters specified in the input arguments
-    size = init_cache(cache_size, block_size, assoc, repl_policy); 
+	size = init_cache(cache_size, block_size, assoc, repl_policy);
 
-    while(1)
-	{
-        MEMACCESS new_access;
+	while(1) {
+		MEMACCESS new_access;
         
 		//read new memory access from the memory trace file
-        BOOL success=read_new_memaccess(&new_access);
-        
-        if(success!=TRUE)   //check the end of the trace file
-            break;
+		BOOL success=read_new_memaccess(&new_access);
+
+		if(success!=TRUE)   //check the end of the trace file
+			break;
+
+		idx = getIndex(new_access.addr, offset, index);
 
 		//check if the new memory access hit on the cache
-        if(isHit(new_access.addr,index,tag,assoc,repl_policy) == FALSE)   
-        {
+		if(isHit(new_access.addr, idx, assoc) == FALSE) {
 			//if miss, insert a cache block for the memory access to the cache
-            insert_to_cache(new_access.addr, index, tag, assoc, repl_policy);  
+	       		insert_to_cache(new_access.addr, idx, assoc, repl_policy);  
 			cache_miss++;
-        }
+        	}
 		else
 			cache_hit++;
 	}
     
-    // print statistics here
+	// print statistics here
 	print_stat(cache_size, block_size, assoc, repl_policy, cache_hit, cache_miss);
 
 	for (i = 0; i < size; i++)
@@ -135,7 +133,8 @@ int main(int argc, char*argv[])
 	return 0;
 }
 
-int logB(int x) {
+int logB(int x) 
+{
 	int i;
 	int cnt = 0;
 
@@ -149,7 +148,7 @@ int logB(int x) {
 
 int init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
 	int index;
-	long long i, j;
+	int i, j;
 
 	// cache index
 	index = cache_size / (block_size * assoc);
@@ -187,84 +186,102 @@ int init_cache(int cache_size, int block_size, int assoc, RPL repl_policy) {
  */
 BOOL read_new_memaccess(MEMACCESS* mem_access)
 {
-    ADDR access_addr;
-    char access_type[10];
-    /*
-     * open the mem trace file
-     */
+	ADDR access_addr;
+	char access_type[10];
+    
+	/*
+	 * open the mem trace file
+	 */
+	
+	if(fp==NULL) {
+		fp=fopen(trace_file,"r");
+		
+		if(fp==NULL) {
+			fprintf(stderr,"error opening file");
+			exit(2);
+		}   
+	}
 
-    if(fp==NULL)
-    {
-        fp=fopen(trace_file,"r");
-        if(fp==NULL)
-        {
-            fprintf(stderr,"error opening file");
-            exit(2);
+	if(mem_access==NULL) {
+		fprintf(stderr,"MEMACCESS pointer is null!");
+		exit(2);
+	}
 
-        }   
-    }
-
-    if(mem_access==NULL)
-    {
-        fprintf(stderr,"MEMACCESS pointer is null!");
-        exit(2);
-    }
-
-    if(fscanf(fp,"%llx %s", &access_addr, &access_type)!=EOF)
-    {
-        mem_access->addr=access_addr;
-        if(strcmp(access_type,"RD")==0)
-            mem_access->is_read=TRUE;
-        else
-            mem_access->is_read=FALSE;
+	if(fscanf(fp,"%llx %s", &access_addr, &access_type)!=EOF) {
+		mem_access->addr=access_addr;
+		
+		if(strcmp(access_type,"RD")==0)
+			mem_access->is_read=TRUE;
+		else
+			mem_access->is_read=FALSE;
         
-        return TRUE;
-    }       
-    else
-        return FALSE;
+		return TRUE;
+	}       
+	else
+		return FALSE;
 }
 
-BOOL isHit(ADDR addr, int offset, int index, int tag,int assoc){
-	int i;
-	int idx,tg; // index, tag
+int getIndex(ADDR addr, int offset, int index)
+{
+	int arr[100] = {-1, };
+	int i, num = 1;
+	int result = 0;
 
-	idx= (addr << tag) >> (32-index);
-	tg = addr >> (index + offset);
+	for (i = 0; addr > 0 ; i++) {
+		if (addr % 2 == 1)
+			arr[i] = 1;
+		else
+			arr[i] = 0;
+		
+		addr /= 2;
+	} 
+
+	for (i = offset; i < offset+index; i++) {
+		if (arr[i] == 1)
+			result += num;
+		
+		num *= 2;
+	}
+
+	return result;
+}
+
+BOOL isHit(ADDR addr, int idx, int assoc) 
+{
+	int i;
 
 	for (i = 0; i < assoc; i++) {
-		if ((cache[idx][i].addr >> (index + offset)) == tg) {
-			if (cache[idx][i].is_read==0)
-    			return FALSE;
-			else
+		if (cache[idx][i].is_read) {
+			if (cache[idx][i].addr == addr)
 				return TRUE;
+			else
+				return FALSE;
 		}
 	}
 	
 	return FALSE;
 }
 
-ADDR insert_to_cache(ADDR addr, int index, int tag, int assoc, RPL repl_policy) {
-	int r, c; // cache row, column
+ADDR insert_to_cache(ADDR addr, int r, int assoc, RPL repl_policy) 
+{
+	int c; // cache row, column
 	int check = FALSE;
 
-	r = (addr << tag) >> (32-index);
-
 	if (repl_policy == LRU) {
-		for (c = assoc-1; c >= 0; c--) {
+		// find empty block
+		for (c = assoc-1; c >= 0; c--) { 
 			if (!cache[r][c].is_read) {
 				check = TRUE;
 				break;
 			}
 		}
 
+		// if there's no empty block
 		if (!check) {
+			// find block whose counter is 0
 			for (c = assoc-1; c >= 0; c--)
 				if (LRU_counter[r][c] == 0)
 					break;
-
-			cache[r][c].addr = addr;
-			update_LRU(r, c, 0, assoc);
-			LRU_counter[r][c] = assoc-1;
 		}
 
 		cache[r][c].is_read = TRUE;
@@ -273,6 +290,7 @@ ADDR insert_to_cache(ADDR addr, int index, int tag, int assoc, RPL repl_policy) 
 		LRU_counter[r][c] = assoc-1;
 	}
 	else {
+		// find empty block
 		for (c = 0; c < assoc; c++) {
 			if (!cache[r][c].is_read) {
 				check = TRUE;
@@ -280,7 +298,9 @@ ADDR insert_to_cache(ADDR addr, int index, int tag, int assoc, RPL repl_policy) 
 			}
 		}
 
+		// if there's no empty block
 		if (!check) {
+			// put it in any position
 			srand(time(NULL));
 			c = rand() % assoc;
 		}
@@ -290,7 +310,8 @@ ADDR insert_to_cache(ADDR addr, int index, int tag, int assoc, RPL repl_policy) 
 	}
 }
 
-void update_LRU(int r, int c, int prev, int assoc) {
+void update_LRU(int r, int c, int prev, int assoc) 
+{
 	int i;
 
 	for (i = 0; i < assoc; i++) {
