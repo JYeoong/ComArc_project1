@@ -24,58 +24,11 @@ BOOL read_new_memaccess(MEMACCESS*);  //read new memory access from the memory t
 //configure the cache
 void init_cache(int cache_size, int block_size, int assoc, RPL repl_policy);
 
-
-
-
-
 //check if the memory access hits on the cache
-BOOL isHit(ADDR addr)
-{
-	long long index,count=0;
-	long long i,j;
-
-	index=addr-(addr>>3)-1;
-
-	/*lru->mru 반복문 돌며 update 필요.*/
-	for(i=lru;count<approc;){
-		if(cache[index][i].addr==addr)
-		{
-			if(cache[index][i].is_read==0)
-				return false;
-			/*counter MRU update*/
-			for(j=0;j<approc;j++){
-				if(j=approc-1)
-					cache[index][j].counter=0;
-				else
-					cache[index][j].counter=j+1;
-			}
-			return TRUE;
-		}
-		if(i+1==lru)
-			i=0;
-		else
-			i++;
-	}
-	return false;
-}
-
-
-
+BOOL isHit(ADDR addr);
 
 //insert a cache block for a memory access
-ADDR insert_to_cache(ADDR addr)
-{
-	long long index
-	index=addr-(addr>>3)-1;
-	
-	if(cache[index][lru].is_read==0)
-		cache[index][].is_read=1;
-	cache[index][lru].addr=addr;
-	/*counter 업데이트*/
-	for(i=lru;i<mru){blabla}
-
-	return 꼭 필요한가?
-}
+ADDR insert_to_cache(ADDR addr);
 
 
 //print the simulation statistics
@@ -93,7 +46,7 @@ int main(int argc, char*argv[])
     int block_size=32;
     RPL repl_policy=LRU;
 
-    /*
+	/*
     *  Read through command-line arguments for options.
     */
     for (i = 1; i < argc; i++) {
