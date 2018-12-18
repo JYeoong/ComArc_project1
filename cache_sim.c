@@ -120,15 +120,12 @@ int main(int argc, char*argv[])
 	// print statistics here
 	print_stat(cache_size, block_size, assoc, repl_policy, cache_hit, cache_miss);
 
-	for (i = 0; i < size; i++)
-		free(cache[i]);
+
+	
 	free(cache);
 
-	if (LRU_counter != NULL) {
-		for (i = 0; i < size; i++)
-			free(LRU_counter[i]);
+	if (LRU_counter != NULL)
 		free(LRU_counter);
-	}
 
 	return 0;
 }
